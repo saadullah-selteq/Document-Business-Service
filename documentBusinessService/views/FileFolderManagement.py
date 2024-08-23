@@ -241,9 +241,12 @@ class CreateSubBusinessFolder(APIView):
                 'ownerId': str(sub_business_id)
             })
 
-            container_client = containerClient()
-            blob_name = f"{business_id}/{sub_business_id}/{folder_path}"
-            container_client.upload_blob(name=blob_name, data=b"")
+            # Commented out Azure Blob Storage integration
+            # container_client = containerClient()
+            # blob_name = f"{business_id}/{sub_business_id}/{folder_path}"
+            # container_client.upload_blob(name=blob_name, data=b"")
+
+            print("Request data:", request_data)
 
             serializer = BusinessFolderSerializer(data=request_data)
             serializer.is_valid(raise_exception=True)
@@ -275,6 +278,7 @@ class CreateSubBusinessFolder(APIView):
                 return bad_request(message="Parent ID is required")
 
             data = service.getBusinessFolder(parent_id)
+            print("Retrieved folder data:", data)
             return ok(data=data)
 
         except Exception as e:
@@ -304,6 +308,7 @@ class CreateSubBusinessFolder(APIView):
                 return bad_request(message="Folder name and ID are required")
 
             DocumentBusinessFolder.objects.filter(folderId=folder_id).update(folderName=folder_name)
+            print(f"Folder with ID {folder_id} updated to new name: {folder_name}")
             return ok(message='Folder name updated successfully')
 
         except Exception as e:
@@ -330,7 +335,7 @@ class CreateSubBusinessFolder(APIView):
             DocumentBusinessFolder.objects.filter(folderId=folder_id).update(isDeleted=True)
             DocumentBusinessFolder.objects.filter(folderParentId=folder_id).update(isDeleted=True)
             DocumentBusinessFile.objects.filter(folderId=folder_id).update(isDeleted=True)
-
+            print(f"Folder with ID {folder_id} and its contents marked as deleted.")
             return ok(message='Folder deleted successfully')
 
         except Exception as e:

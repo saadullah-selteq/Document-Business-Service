@@ -238,9 +238,15 @@ class CreateSubBusiness(APIView):
             subBusinessId = request.data.get('subBusinessId', None)
             getBusiness = Business.objects.get(businessId=businessId)
             today = datetime.datetime.now()
+
+            print("Business ID:", businessId)
+            print("Folder ID:", folderId)
+            print("SubBusiness ID:", subBusinessId)
+
             if Business.objects.filter(businessId=businessId).exists():
                 serlizer = BusinessSerializer(getBusiness)
                 json_data = serlizer.data
+                print("Business data retrieved:", json_data)
             else:
                 return bad_request(message='Business does not exist')
 
@@ -253,6 +259,7 @@ class CreateSubBusiness(APIView):
                 "updatedAt": today,
                 "folderType": "SubBusiness"
             }
+
             if subBusinessId is not None:
                 request_data = request.data
                 request_data['createdAt'] = today
@@ -260,25 +267,38 @@ class CreateSubBusiness(APIView):
                 request_data['accessOf'] = f'{businessId}/'
                 request_data['businessName'] = json_data['businessName']
                 request_data['businessId'] = businessId
+
+                print("Request data prepared:", request_data)
+
                 try:
-                    container_client = containerClient()
-                    container_client.upload_blob(name=(str(businessId) + "/" + str(subBusinessId) + "/"), data=b"")
+                    # Commented out Azure Blob Storage integration
+                    # container_client = containerClient()
+                    # container_client.upload_blob(name=(str(businessId) + "/" + str(subBusinessId) + "/"), data=b"")
+
                     serializer = SubBusinessSerializer(data=request_data)
                     serializerFolder = BusinessFolderSerializer(data=dataFolder)
+
                     if serializer.is_valid(raise_exception=True) and serializerFolder.is_valid(raise_exception=True):
                         serializer.save()
                         serializerFolder.save()
+                        print(f"{serializer.data['subBusinessId']} subBusiness Created Successfully")
                         return created(message=f"{serializer.data['subBusinessId']} subBusiness Created Successfully")
                     else:
                         error_detail = list(serializer.errors.values())[0][0]
+                        print("Error during serialization:", serializer.errors)
                         return bad_request(data=serializer.errors, message=str(error_detail))
+
                 except ValidationError as e:
                     error_detail = list(e.detail.values())[0][0]
+                    print("ValidationError:", error_detail)
                     return internal_server_error(message=str(error_detail))
+
             else:
+                print("subBusinessId is missing")
                 return bad_request(message="subBusinessId Id is missing")
+
         except Exception as err:
-            print(traceback.format_exc())
+            print("Exception occurred:", traceback.format_exc())
             return internal_server_error(message="Failed to create")
 
     @swagger_auto_schema(
@@ -296,11 +316,18 @@ class CreateSubBusiness(APIView):
     def get(self, request):
         try:
             businessId = request.GET.get('businessId', None)
+            print("Retrieve sub-businesses for Business ID:", businessId)
+
             if businessId is not None:
                 data = service.getSubBusiness(businessId)
-            return ok(data=data)
+                print("Sub-businesses retrieved:", data)
+                return ok(data=data)
+            else:
+                print("Business ID is missing in request")
+                return bad_request(message="Business ID is missing")
+
         except Exception as err:
-            print(traceback.format_exc())
+            print("Exception occurred:", traceback.format_exc())
             return internal_server_error(message='Failed to get business')
 
     # def patch(self, request):
@@ -339,6 +366,7 @@ class CreateSubBusiness(APIView):
     #     except Exception as err:
     #         print(traceback.format_exc())
     #         return internal_server_error(message='Failed to update folder')
+
     @swagger_auto_schema(
         operation_id='delete_sub_business',
         operation_description='Delete a sub-business by its ID.',
@@ -354,12 +382,14 @@ class CreateSubBusiness(APIView):
     def delete(self, request):
         try:
             subBusinessId = request.GET.get('subBusinessId', None)
+            print("Deleting sub-business with ID:", subBusinessId)
             SubBusiness.objects.filter(subBusinessId=subBusinessId).update(isDeleted=True)
+            print("Sub-business deleted successfully")
             return ok(message='Successfully deleted')
-        except Exception as err:
-            print(traceback.format_exc())
-            return internal_server_error(message='Failed to delete folder')
 
+        except Exception as err:
+            print("Exception occurred:", traceback.format_exc())
+            return internal_server_error(message='Failed to delete folder')
 
 
 class getSubBusinessDetails(APIView):
@@ -378,10 +408,11 @@ class getSubBusinessDetails(APIView):
     def get(self, request):
         try:
             subBusinessId = request.GET.get('subBusinessId', None)
+            print("Getting details for sub-business ID:", subBusinessId)
             data = service.getSubBusinessDetails(subBusinessId)
+            print("Sub-business details retrieved:", data)
             return ok(data=data)
 
         except Exception as err:
-            print(traceback.format_exc())
+            print("Exception occurred:", traceback.format_exc())
             return internal_server_error(message='Failed to get file')
-
